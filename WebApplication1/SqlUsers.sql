@@ -6,7 +6,5 @@ CREATE TABLE "Users" (
                          CONSTRAINT "PK_Users" PRIMARY KEY ("Id")
 );
 
-INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
-VALUES ('20250926102613_InitialCreate', '9.0.9');
 
 COMMIT;
