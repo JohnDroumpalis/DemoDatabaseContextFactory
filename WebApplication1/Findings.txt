@@ -1,0 +1,37 @@
+•	DbContext is NOT thread-safe.
+	1)You cannot share a single DbContext instance across multiple tasks/threads.
+	2)Doing so can lead to subtle bugs, exceptions, or corrupted state.
+	
+•	IDbContextFactory<T> allows you to create a new DbContext instance per operation.
+	1)Each task gets its own DbContext.
+	2)They don’t share any tracked entities or internal EF state.
+	3)Safe to run reads, inserts, updates, deletes in parallel.
+
+
+Each Get() or Update() creates its own context via the factory.
+No shared state → no threading issues in EF Core.
+PostgreSQL handles the database concurrency internally (MVCC).
+
+So for resolving the concurrent issue we can IDbContextFactory<T>.
+
+1.Always create a new DbContext per task when doing parallel operations.
+2.Use AsNoTracking() for read-only queries to reduce overhead and avoid unintended tracking conflicts.
+3.Handle concurrency exceptions in writes if multiple tasks update the same row.
+4.You can safely mix hundreds of concurrent reads and writes using IDbContextFactory.
+
+Concurrent reads in PostgreSQL
+
+1)PostgreSQL supports fully concurrent reads.
+2)Multiple transactions can read the same rows or tables at the same time without blocking each other.
+3)This is because reads in PostgreSQL use Multi-Version Concurrency Control (MVCC):
+4)Each transaction sees a snapshot of the database at the start of the transaction.
+5)Reads do not block writes, and writes do not block reads (except for locks in special cases).
+
+Concurrent scenario example
+User A reads the table (e.g., SELECT * FROM users)
+User B updates a property in one row and commits
+
+Then:
+User A’s query will see the old value if their transaction started before User B committed.
+If User A queries again after User B’s commit in a new context/transaction, they will see the new value. 
+(In case a Hero Games update occurs—whether through NCP or via a script—and, in the meantime, someone makes a call for Home)
